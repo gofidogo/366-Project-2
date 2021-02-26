@@ -18,6 +18,7 @@ def parse_hex8(s):
 
 def instr_analysis(s):
     # decide if this is an addi instruction
+#FIRST THE I-TYPE INSTR
     if(s[0:6]=='001000'):
         op = 'addi'
         print(f'op = {s[0:6]}, addi instruction.')
@@ -30,19 +31,43 @@ def instr_analysis(s):
     elif(s[0:6]=='001110'):
         op = 'xori'
         print(f'op = {s[0:6]}, xori instruction.')
+#THEN THE BRANCH/JUMP INSTR
+    elif(s[0:6]=='000100'):
+        op = 'beq'
+        print(f'op = {s[0:6]}, beq instruction.')
+    elif(s[0:6]=='000101'):
+        op = 'bne'
+        print(f'op = {s[0:6]}, bne instruction.')
+    elif(s[0:6]=='000010'):
+        op = 'j'
+        print(f'op = {s[0:6]}, j instruction.')
+#THEN THE LOAD/STORE INSTR
     elif(s[0:6]=='100011'):
         op = 'lw'
         print(f'op = {s[0:6]}, lw instruction.')
     elif(s[0:6]=='101011'):
         op = 'sw'
         print(f'op = {s[0:6]}, sw instruction.')
+#FINALLY THE R-TYPE INSTR
     elif(s[0:6]=='000000'):
         if (s[26:]=='100000'):
-            op = 'and'
+            op = 'add'
         elif (s[26:]=='100010'):
             op = 'sub'
+        elif (s[26:]=='100100'):
+            op = 'and'
+        elif (s[26:]=='100101'):
+            op = 'or'
         elif (s[26:]=='100110'):
-            op = 'xor'
+            op = 'xor'                            
+        elif (s[26:]=='101010'):
+            op = 'slt'
+        elif (s[26:]=='000000'):
+            op = 'sll'
+        elif (s[26:]=='000010'):
+            op = 'srl'
+        elif (s[26:]=='000011'):
+            op = 'sra'
         print(f'op = {s[0:6]}, {op} instruction.')
     else:
         print(f'op = {s[0:6]}, unknown instruction.\n')
