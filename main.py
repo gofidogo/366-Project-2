@@ -18,59 +18,33 @@ def parse_hex8(s):
 
 def instr_analysis(s):
     # decide if this is an addi instruction
-#FIRST THE I-TYPE INSTR
-    if(s[0:6]=='001000'):
-        op = 'addi'
-        print(f'op = {s[0:6]}, addi instruction.')
-    elif(s[0:6]=='001100'):
-        op = 'andi'
-        print(f'op = {s[0:6]}, andi instruction.')
-    elif(s[0:6]=='001101'):
-        op = 'ori'
-        print(f'op = {s[0:6]}, ori instruction.')
-    elif(s[0:6]=='001110'):
-        op = 'xori'
-        print(f'op = {s[0:6]}, xori instruction.')
-#THEN THE BRANCH/JUMP INSTR
-    elif(s[0:6]=='000100'):
-        op = 'beq'
-        print(f'op = {s[0:6]}, beq instruction.')
-    elif(s[0:6]=='000101'):
-        op = 'bne'
-        print(f'op = {s[0:6]}, bne instruction.')
-    elif(s[0:6]=='000010'):
-        op = 'j'
-        print(f'op = {s[0:6]}, j instruction.')
-#THEN THE LOAD/STORE INSTR
-    elif(s[0:6]=='100011'):
-        op = 'lw'
-        print(f'op = {s[0:6]}, lw instruction.')
-    elif(s[0:6]=='101011'):
-        op = 'sw'
-        print(f'op = {s[0:6]}, sw instruction.')
-#FINALLY THE R-TYPE INSTR
-    elif(s[0:6]=='000000'):
-        if (s[26:]=='100000'):
-            op = 'add'
-        elif (s[26:]=='100010'):
-            op = 'sub'
-        elif (s[26:]=='100100'):
-            op = 'and'
-        elif (s[26:]=='100101'):
-            op = 'or'
-        elif (s[26:]=='100110'):
-            op = 'xor'                            
-        elif (s[26:]=='101010'):
-            op = 'slt'
-        elif (s[26:]=='000000'):
-            op = 'sll'
-        elif (s[26:]=='000010'):
-            op = 'srl'
-        elif (s[26:]=='000011'):
-            op = 'sra'
-        print(f'op = {s[0:6]}, {op} instruction.')
+    op_dict = {
+    "001000":"addi",
+    "001100":"andi",
+    "001101":"ori",
+    "001110":"xori",
+    "000100":"beq",
+    "000101":"bne",
+    "000010":"j",
+    "100011":"lw",
+    "101011":"sw"
+    }
+
+    funct_dict = {
+  "100000":"add",
+  "100010":"sub",
+  "100100":"and",
+  "100101":"or",
+  "100110":"xor",
+  "101010":"slt"
+  }
+
+    if(s[0:6]=='000000'):
+        op = funct_dict[s[26:]]
+        print(f'funct = {s[26:]}, {funct_dict[s[26:]]} instruction.')
     else:
-        print(f'op = {s[0:6]}, unknown instruction.\n')
+        op = op_dict[s[0:6]]
+        print(f'op = {s[0:6]}, {op_dict[s[0:6]]} instruction.\n')
     return op
 
 def user_input():
