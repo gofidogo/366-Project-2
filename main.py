@@ -1,102 +1,147 @@
-# char of hex digit -> a string of 4 binary bits.
+# Turns hex into bin
 def hextobin(c):
     num = int(c, base=16)
     b = bin(num)
-#    print(f'c is {c}, num is {num}, b[2:].zfill(4) is {b[2:].zfill(4)}')
-    return(b[2:].zfill(4))
+    return (b[2:].zfill(4))
 
-# parse an 8-digit string of hex into 32-bit binary string 
+# parse an 8-digit string of hex into 32-bit binary string
 def parse_hex8(s):
     b = ""
     for i in range(8):
         b += hextobin(s[i])
-    if(b[0:6]=='000000'):
-        print(f'{s[:-1]} -> {b[0:6]} {b[6:11]} {b[11:16]} {b[16:21]} {b[21:26]} {b[26:32]}')
+    if (b[0:6] == '000000'):
+        print(
+            f'{s[:-1]} -> {b[0:6]} {b[6:11]} {b[11:16]} {b[16:21]} {b[21:26]} {b[26:32]}'
+        )
     else:
         print(f'{s[:-1]} -> {b[0:6]} {b[6:11]} {b[11:16]} {b[16:32]}')
     return b
 
-def instr_analysis(s):
-    # decide if this is an addi instruction
-#FIRST THE I-TYPE INSTR
-    if(s[0:6]=='001000'):
-        op = 'addi'
-        print(f'op = {s[0:6]}, addi instruction.')
-    elif(s[0:6]=='001100'):
-        op = 'andi'
-        print(f'op = {s[0:6]}, andi instruction.')
-    elif(s[0:6]=='001101'):
-        op = 'ori'
-        print(f'op = {s[0:6]}, ori instruction.')
-    elif(s[0:6]=='001110'):
-        op = 'xori'
-        print(f'op = {s[0:6]}, xori instruction.')
-#THEN THE BRANCH/JUMP INSTR
-    elif(s[0:6]=='000100'):
-        op = 'beq'
-        print(f'op = {s[0:6]}, beq instruction.')
-    elif(s[0:6]=='000101'):
-        op = 'bne'
-        print(f'op = {s[0:6]}, bne instruction.')
-    elif(s[0:6]=='000010'):
-        op = 'j'
-        print(f'op = {s[0:6]}, j instruction.')
-#THEN THE LOAD/STORE INSTR
-    elif(s[0:6]=='100011'):
-        op = 'lw'
-        print(f'op = {s[0:6]}, lw instruction.')
-    elif(s[0:6]=='101011'):
-        op = 'sw'
-        print(f'op = {s[0:6]}, sw instruction.')
-#FINALLY THE R-TYPE INSTR
-    elif(s[0:6]=='000000'):
-        if (s[26:]=='100000'):
-            op = 'add'
-        elif (s[26:]=='100010'):
-            op = 'sub'
-        elif (s[26:]=='100100'):
-            op = 'and'
-        elif (s[26:]=='100101'):
-            op = 'or'
-        elif (s[26:]=='100110'):
-            op = 'xor'                            
-        elif (s[26:]=='101010'):
-            op = 'slt'
-        elif (s[26:]=='000000'):
-            op = 'sll'
-        elif (s[26:]=='000010'):
-            op = 'srl'
-        elif (s[26:]=='000011'):
-            op = 'sra'
-        print(f'op = {s[0:6]}, {op} instruction.')
+
+# decides the type of instruction and prints assembly code
+def instr_analysis(c):
+    op_dict = {
+        "001000": "addi",
+        "001100": "andi",
+        "001101": "ori",
+        "001110": "xori",
+        "000100": "beq",
+        "000101": "bne",
+        "000010": "j",
+        "100011": "lw",
+        "101011": "sw"
+    }
+    funct_dict = {
+        "100000": "add",
+        "100010": "sub",
+        "100100": "and",
+        "100101": "or",
+        "100110": "xor",
+        "101010": "slt",
+        "000000": "sll",
+        "000010": "srl",
+        "000011": "sra"
+    }
+
+    if (c[0:6] == '000000'):
+        op = funct_dict[c[26:]]
+        print(f'{op} ${d}, ${s}, ${t}\n')
+    elif (c[4:6] == '11'):
+        op = op_dict[c[0:6]]
+        print(f'{op} ${t}, {imm}(${s})\n')
     else:
-        print(f'op = {s[0:6]}, unknown instruction.\n')
+        op = op_dict[c[0:6]]
+        print(f'{op} ${t}, {s}, {imm}\n')
     return op
 
-def user_input():
-    h = input("give me an instruction in 8-digit hex: \n")
-    mc = parse_hex8(h)
-    return mc
-    
-def read_file():
-    f = open('mc.txt')
-    print('\nNow reading lines from mc.txt:\n')
-    for line in f:
-        mc = parse_hex8(line)
-        op = instr_analysis(mc)
-        full_instr(op,mc)
-    f.close()
+def do_addi():
+    register[t] = register[s] + imm
+def do_andi():
+    register[t] = register[s] & imm
+def do_ori():
+    register[t] = register[s] | imm
+def do_xori():
+    register[t] = register[s] ^ imm
+#FIX_ME(add branch and jump instructions)
+#def beq():
+    #if register[t] == register[s]:
+      #PC += (4*imm)
+def do_lw():
+    register[t] = DM[imm + register[s]]
+def do_sw():
+    DM[imm + register[s]] = register[t]
+def do_add():
+    register[d] = register [s] + register[t]
+def do_sub():
+    register[d] = register [s] - register[t]
+def do_and():
+    register[d] = register [s] & register[t]
+def do_or():
+    register[d] = register [s] | register[t]
+def do_xor():
+    register[d] = register [s] ^ register[t]
+def do_slt():
+    register[d] = register [s] < register[t]
+def do_sll():
+    register[d] = register[t] << a
+def do_sra():
+    register[d] = register[t] >> a
 
-def full_instr(operation,b):
-    imm = int(b[16:32],2)
-    if (imm > 32767):         #simple 2s complement checker
-        imm = imm - 65536
-    if(operation == 'lw' or operation == 'sw'):
-        print(f'{operation} ${int(b[11:16],2)}, {imm}(${int(b[6:11],2)})\n\n')
-    elif(b[0:6]=='000000'):
-        print(f'{operation} ${int(b[16:21],2)}, ${int(b[6:11],2)}, ${int(b[11:16],2)}\n\n')
-    else:
-        print(f'{operation} ${int(b[11:16],2)}, ${int(b[6:11],2)}, {imm}\n\n')
+# Generates 32 registers
+register = []
+for i in range(32):
+  register.append(0)
 
-read_file()
+# Generates simulated data memory i.e. DM[0x2000],DM[0x2004], etc. 
+DM = {}
+DM_index = 0x2000
+while DM_index < 0x3000:
+  DM[DM_index] = 0
+  DM_index += 4
 
+# dispatch table for each instruction
+call = {
+  "addi":do_addi,
+  "andi":do_andi,
+  "ori":do_ori,
+  "xori":do_xori,
+  #"beq":do_beq,
+  #"bne":do_bne,
+  #"j":do_j,
+  "lw":do_lw,
+  "sw":do_sw,
+  "add":do_add,
+  "sub":do_sub,
+  "and":do_and,
+  "or":do_or,
+  "xor":do_xor,
+  "slt":do_slt
+  }
+
+f = open('mc.txt')
+print('\nNow reading lines from mc.txt:\n')
+# Iterates through file to execute instructions
+for line in f:
+  mc = parse_hex8(line)
+  s = int(mc[6:11],2)         # First defines any possible information
+  t = int(mc[11:16],2)
+  d = int(mc[16:21],2)
+  a = int(mc[21:26],2)
+  imm = int(mc[16:],2)
+  if (imm > 0x7fff):
+    imm -= 0x10000
+  jimm = int(mc[11:],2)
+  operation = instr_analysis(mc)  # Defines operation based on instr_analysis
+  call[operation]()       # Calls and executes correct instr. with dispatch table
+f.close()
+
+# Shows every register
+print('Registers')
+for i in range(len(register)):
+  print(f'{i} : {register[i]}')
+
+# Shows changed data memory
+print('Data Memory')
+for i in (DM):
+  if DM[i] != 0:
+    print(f'DM[{hex(i)}] = {DM[i]}')
