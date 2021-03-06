@@ -49,6 +49,9 @@ def instr_analysis(c):
     elif (c[4:6] == '11'):
         op = op_dict[c[0:6]]
         print(f'{op} ${t}, {imm}(${s})\n')
+    elif (c[0:6] == '000010'):
+        op = op_dict[c[0:6]]
+        print(f'{op}')
     else:
         op = op_dict[c[0:6]]
         print(f'{op} ${t}, {s}, {imm}\n')
@@ -62,10 +65,17 @@ def do_ori():
     register[t] = register[s] | imm
 def do_xori():
     register[t] = register[s] ^ imm
-#FIX_ME(add branch and jump instructions)
-#def beq():
-    #if register[t] == register[s]:
-      #PC += (4*imm)
+def do_beq():
+    global PC
+    if register[t] == register[s]:
+      PC += (4*imm)
+def do_bne():
+    global PC
+    if register[t] != register[s]:
+      PC += (4*imm)
+def do_j():
+    global PC
+    PC = (4*jimm)
 def do_lw():
     register[t] = DM[imm + register[s]]
 def do_sw():
@@ -83,9 +93,10 @@ def do_xor():
 def do_slt():
     register[d] = register [s] < register[t]
 def do_sll():
-    register[d] = register[t] << a
-def do_sra():
-    register[d] = register[t] >> a
+    register[t] = register[s] << a
+def do_srl():
+    register[t] = register[s] >> a
+
 
 # Generates 32 registers
 register = []
@@ -105,9 +116,9 @@ call = {
   "andi":do_andi,
   "ori":do_ori,
   "xori":do_xori,
-  #"beq":do_beq,
-  #"bne":do_bne,
-  #"j":do_j,
+  "beq":do_beq,
+  "bne":do_bne,
+  "j":do_j,
   "lw":do_lw,
   "sw":do_sw,
   "add":do_add,
@@ -115,25 +126,41 @@ call = {
   "and":do_and,
   "or":do_or,
   "xor":do_xor,
-  "slt":do_slt
+  "slt":do_slt,
+  "sll":do_sll,
+  "srl":do_srl
   }
 
+
 f = open('mc.txt')
-print('\nNow reading lines from mc.txt:\n')
-# Iterates through file to execute instructions
-for line in f:
-  mc = parse_hex8(line)
-  s = int(mc[6:11],2)         # First defines any possible information
-  t = int(mc[11:16],2)
-  d = int(mc[16:21],2)
-  a = int(mc[21:26],2)
-  imm = int(mc[16:],2)
-  if (imm > 0x7fff):
-    imm -= 0x10000
-  jimm = int(mc[11:],2)
-  operation = instr_analysis(mc)  # Defines operation based on instr_analysis
-  call[operation]()       # Calls and executes correct instr. with dispatch table
+lines = f.readlines()
 f.close()
+
+#Instrucion and label dictionaries for robustness
+instr_dict = {}
+label_dict = {}
+PC = 0
+for ln in lines:
+    instr_dict[PC] = ln[0:8]  # do not include \n in the end of an
+    PC += 4
+
+print('\nNow reading lines from mc.txt:\n')
+PC = 0
+while PC <= list(instr_dict.keys())[-1]:
+    instr = instr_dict[PC]
+    mc = parse_hex8(instr)
+    s = int(mc[6:11],2)      # First defines any possible information
+    t = int(mc[11:16],2)
+    d = int(mc[16:21],2)
+    a = int(mc[21:26],2)
+    imm = int(mc[16:],2)
+    if (imm > 0x7fff):
+      imm -= 0x10000
+    jimm = int(mc[11:],2)
+    operation = instr_analysis(mc)  # Defines operation based on instr_analysis
+    call[operation]()       # Calls and executes correct instr. with dispatch table
+    PC += 4
+
 
 # Shows every register
 print('Registers')
@@ -145,3 +172,4 @@ print('Data Memory')
 for i in (DM):
   if DM[i] != 0:
     print(f'DM[{hex(i)}] = {DM[i]}')
+
