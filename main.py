@@ -9,12 +9,12 @@ def parse_hex8(s):
     b = ""
     for i in range(8):
         b += hextobin(s[i])
-    if (b[0:6] == '000000'):
-        print(
-            f'{s[:-1]} -> {b[0:6]} {b[6:11]} {b[11:16]} {b[16:21]} {b[21:26]} {b[26:32]}'
-        )
-    else:
-        print(f'{s[:-1]} -> {b[0:6]} {b[6:11]} {b[11:16]} {b[16:32]}')
+    # if (b[0:6] == '000000'):
+    #     print(
+    #         f'{s[:-1]} -> {b[0:6]} {b[6:11]} {b[11:16]} {b[16:21]} {b[21:26]} {b[26:32]}'
+    #     )
+    # else:
+    #     print(f'{s[:-1]} -> {b[0:6]} {b[6:11]} {b[11:16]} {b[16:32]}')
     return b
 
 
@@ -29,7 +29,8 @@ def instr_analysis(c):
         "000101": "bne",
         "000010": "j",
         "100011": "lw",
-        "101011": "sw"
+        "101011": "sw",
+        "001111": "lui"
     }
     funct_dict = {
         "100000": "add",
@@ -39,22 +40,26 @@ def instr_analysis(c):
         "100110": "xor",
         "101010": "slt",
         "000000": "sll",
+        "000100": "sllv",
         "000010": "srl",
         "000011": "sra"
     }
 
     if (c[0:6] == '000000'):
         op = funct_dict[c[26:]]
-        print(f'{op} ${d}, ${s}, ${t}\n')
-    elif (c[4:6] == '11'):
+        #print(f'{op} ${d}, ${s}, ${t}\n')
+    elif (c[3:6] == '011'):
         op = op_dict[c[0:6]]
-        print(f'{op} ${t}, {imm}(${s})\n')
+        #print(f'{op} ${t}, {imm}(${s})\n')
     elif (c[0:6] == '000010'):
         op = op_dict[c[0:6]]
-        print(f'{op}')
+        #print(f'{op} {jimm}')
     else:
         op = op_dict[c[0:6]]
-        print(f'{op} ${t}, {s}, {imm}\n')
+        #if op == "lui":
+        #     print(f'{op} ${t}, {imm}\n')
+        # else:        
+        #     print(f'{op} ${t}, ${s}, {imm}\n')
     return op
 
 def do_addi():
@@ -75,11 +80,12 @@ def do_bne():
       PC += (4*imm)
 def do_j():
     global PC
-    PC = (4*jimm)
+    PC = (4*jimm) - 4
 def do_lw():
     register[t] = DM[imm + register[s]]
 def do_sw():
     DM[imm + register[s]] = register[t]
+    print(f'DM[{imm+ register[s]}] = {register[t]}')
 def do_add():
     register[d] = register [s] + register[t]
 def do_sub():
@@ -91,11 +97,48 @@ def do_or():
 def do_xor():
     register[d] = register [s] ^ register[t]
 def do_slt():
-    register[d] = register [s] < register[t]
+    register[d] = int(register [s] < register[t])
 def do_sll():
-    register[t] = register[s] << a
+    register[d] = register[t] << a
+def do_sllv():
+    register[d] = register[t] << register[s]
 def do_srl():
-    register[t] = register[s] >> a
+    i = register[t]
+    if (i<0):
+      i += 0x100000000
+    h = bin(i)[2:].zfill(16)
+    for n in range(a):
+      h = '0' + h[:-1]
+    h = int(h,2)
+    if h > 0x7fff:
+      h -= 0x100000000
+    register[d] = h
+def do_sra():
+    i = register[s]
+    if (i<0):
+      i += 0x100000000
+      h = bin(i)[2:].rjust(16, '1')
+      for n in range(a):
+        h = '1' + h[:-1]
+    else:
+      h = bin(i)[2:].zfill(16)
+      for n in range(a):
+        h = '0' + h[:-1]
+    h = int(h,2)
+    if h > 0x7fff:
+      h -= 0x100000000
+    register[d] = h
+def do_lui():
+    register[t] = int((mc[16:] + '0000000000000000'),2)
+def check_registers():
+    print('Registers')
+    for i in range(len(register)):
+        print(f'{i} : {register[i]}')
+def check_memory():
+    print('Data Memory')
+    for i in (DM):
+        if DM[i] != 0:
+            print(f'DM[{hex(i)}] = {DM[i]}')
 
 
 # Generates 32 registers
@@ -128,7 +171,10 @@ call = {
   "xor":do_xor,
   "slt":do_slt,
   "sll":do_sll,
-  "srl":do_srl
+  "srl":do_srl,
+  "sra":do_sra,
+  "lui":do_lui,
+  "sllv":do_sllv
   }
 
 
@@ -159,17 +205,17 @@ while PC <= list(instr_dict.keys())[-1]:
     jimm = int(mc[11:],2)
     operation = instr_analysis(mc)  # Defines operation based on instr_analysis
     call[operation]()       # Calls and executes correct instr. with dispatch table
+    print('PC =',PC)
+    #check_registers()
+    # if PC >= 48:
+    #     check_registers()
+        # input('Press enter to continue....')
+
     PC += 4
 
 
 # Shows every register
-print('Registers')
-for i in range(len(register)):
-  print(f'{i} : {register[i]}')
+check_registers()
 
 # Shows changed data memory
-print('Data Memory')
-for i in (DM):
-  if DM[i] != 0:
-    print(f'DM[{hex(i)}] = {DM[i]}')
-
+check_memory()
