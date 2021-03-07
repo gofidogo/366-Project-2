@@ -76,8 +76,9 @@ def do_beq():
       PC += (4*imm)
 def do_bne():
     global PC
-    if register[t] != register[s]:
-      PC += (4*imm)
+    if register[t] == register[s]:
+        return
+    PC += (4*imm)
 def do_j():
     global PC
     PC = (4*jimm) - 4
@@ -85,7 +86,6 @@ def do_lw():
     register[t] = DM[imm + register[s]]
 def do_sw():
     DM[imm + register[s]] = register[t]
-    print(f'DM[{imm+ register[s]}] = {register[t]}')
 def do_add():
     register[d] = register [s] + register[t]
 def do_sub():
@@ -99,33 +99,54 @@ def do_xor():
 def do_slt():
     register[d] = int(register [s] < register[t])
 def do_sll():
-    register[d] = register[t] << a
+    if (register[t]<0):
+      n = register[t] + 0x100000000
+    else:
+      n = register[t]
+    p = bin(n)[2:].zfill(32)
+    for i in range(a):
+      p = p[1:] + '0'
+    p = int(p,2)
+    if p > 0x7fffffff:
+      p -= 0x100000000
+    register[d] = p
 def do_sllv():
-    register[d] = register[t] << register[s]
+    if (register[t]<0):
+      n = register[t] + 0x100000000
+    else:
+      n = register[t]
+    p = bin(n)[2:].zfill(32)
+    for i in range(register[s]):
+      p = p[1:] + '0'
+    p = int(p,2)
+    if p > 0x7fffffff:
+      p -= 0x100000000
+    register[d] = p
+
 def do_srl():
     i = register[t]
     if (i<0):
       i += 0x100000000
-    h = bin(i)[2:].zfill(16)
+    h = bin(i)[2:].zfill(32)
     for n in range(a):
       h = '0' + h[:-1]
     h = int(h,2)
-    if h > 0x7fff:
+    if h > 0x7fffffff:
       h -= 0x100000000
     register[d] = h
 def do_sra():
-    i = register[s]
+    i = register[t]
     if (i<0):
       i += 0x100000000
-      h = bin(i)[2:].rjust(16, '1')
+      h = bin(i)[2:].rjust(32, '1')
       for n in range(a):
         h = '1' + h[:-1]
     else:
-      h = bin(i)[2:].zfill(16)
+      h = bin(i)[2:].zfill(32)
       for n in range(a):
         h = '0' + h[:-1]
     h = int(h,2)
-    if h > 0x7fff:
+    if h > 0x7fffffff:
       h -= 0x100000000
     register[d] = h
 def do_lui():
@@ -185,6 +206,7 @@ f.close()
 #Instrucion and label dictionaries for robustness
 instr_dict = {}
 label_dict = {}
+check_list = []
 PC = 0
 for ln in lines:
     instr_dict[PC] = ln[0:8]  # do not include \n in the end of an
@@ -192,6 +214,7 @@ for ln in lines:
 
 print('\nNow reading lines from mc.txt:\n')
 PC = 0
+check = 0
 while PC <= list(instr_dict.keys())[-1]:
     instr = instr_dict[PC]
     mc = parse_hex8(instr)
@@ -205,13 +228,13 @@ while PC <= list(instr_dict.keys())[-1]:
     jimm = int(mc[11:],2)
     operation = instr_analysis(mc)  # Defines operation based on instr_analysis
     call[operation]()       # Calls and executes correct instr. with dispatch table
-    print('PC =',PC)
-    #check_registers()
-    # if PC >= 48:
-    #     check_registers()
-        # input('Press enter to continue....')
-
     PC += 4
+    print('PC =',PC)
+    # check_registers()
+    # if PC == 136:
+    #   check = 1
+    # if check == 1:
+    #   input('Press enter to continue....')
 
 
 # Shows every register
