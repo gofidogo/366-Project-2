@@ -4,8 +4,22 @@ def hextobin(c):
     b = bin(num)
     return (b[2:].zfill(4))
 
-def 2scomp(val)
+
+# Turns a value into 2s compelement equivalent
+def twoscomp(val, base):
+    complement = val
+    if val <= 0:
+        complement = val + 2**base
+    return complement
     
+
+# Reverts value back from 2s complement
+def untwos(val,base):
+    reverted = val
+    if val >= 2**(base-1):
+        reverted = val - 2**base
+    return reverted
+
 
 # parse an 8-digit string of hex into 32-bit binary string
 def parse_hex8(s):
@@ -47,7 +61,8 @@ def instr_analysis(c):
         "000000": "sll",
         "000100": "sllv",
         "000010": "srl",
-        "000011": "sra"
+        "000011": "sra",
+        "111111": "dig"
     }
 
     if (c[0:6] == '000000'):
@@ -95,16 +110,7 @@ def do_andi():
 def do_ori():
     p = register[s]
     i = imm
-    if (p<0) and (i<0):
-        i += 0x10000
-        p += 0x10000
-    elif imm < 0:
-        i += 0x10000
-    elif register[s] < 0:
-        p += 0x10000
     register[t] = p | i
-    if register[t] > 0x7fffffff:
-      register[t] -= 0x100000000
     stats['ALU'] += 1
 
 
@@ -124,9 +130,8 @@ def do_beq():
 def do_bne():
     global PC
     label_dict[str(PC + (imm*4) + 4)] = 'label'+ str(PC + (imm*4) + 4)
-    if register[t] == register[s]:
-        return
-    PC += (4 * imm)
+    if register[t] != register[s]:
+        PC += (4 * imm)
     stats['Branch'] += 1
 
 
@@ -168,19 +173,7 @@ def do_or():
 
 
 def do_nor():
-    if register[s] < 0:
-        rs = register[s] + 0x100000000
-    else:
-        rs = register[s]
-    if register[t] < 0:
-        rt = register[t] + 0x100000000
-    else:
-        rt = register[t]
-    rd = rs | rt
-    if rd > 0x7fffffff:
-        register[d] = ~(rd - 0x100000000)
-    else:
-        register[d] = ~rd
+    register[d] = ~(register[s] | register[t])
     stats['ALU'] += 1
 
 
@@ -195,10 +188,7 @@ def do_slt():
 
 
 def do_sll():
-    if (register[t] < 0):
-        n = register[t] + 0x100000000
-    else:
-        n = register[t]
+    n = twoscomp(register[t],32)
     p = bin(n)[2:].zfill(32)
     for i in range(a):
         p = p[1:] + '0'
@@ -259,6 +249,14 @@ def do_sra():
 def do_lui():
     register[t] = int((mc[16:] + '0000000000000000'), 2)
     stats['ALU'] += 1
+
+
+# Special Instruction retuns the nth digit of a register
+def do_dig():
+    bin_s = bin(twoscomp(register[t],32))[2:].zfill(32)
+    register[d] = int(bin_s[31-register[s]])
+    stats['ALU'] += 1
+    stats['Special'] += 1
 
 
 def check_registers():
@@ -330,7 +328,7 @@ f.close()
 instr_dict = {}
 label_dict = {}
 asm_dict = {}
-stats = {'ALU': 0, 'Jump': 0, 'Branch': 0, 'Memory': 0, 'Other': 0}
+stats = {'Total':0, 'ALU': 0, 'Jump': 0, 'Branch': 0, 'Memory': 0, 'Other': 0, 'Special': 0}
 
 PC = 0
 for ln in lines:
@@ -357,6 +355,7 @@ while PC <= list(instr_dict.keys())[-1]:
     jimm = int(mc[11:], 2)
     operation = instr_analysis(mc)  # Defines operation based on instr_analysis
     call[operation]()  # Calls and executes correct instr. with dispatch table
+    stats['Total'] += 1
     PC += 4
     if check == 'slow':
         print('PC = ', PC)
