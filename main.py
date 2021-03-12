@@ -254,8 +254,10 @@ def do_lui():
 # Special Instruction retuns the nth digit of a register
 def do_dig():
     bin_s = bin(twoscomp(register[t],32))[2:].zfill(32)
-    register[d] = int(bin_s[31-register[s]])
-    stats['ALU'] += 1
+    if bin_s[31 - register[s]] == '1':
+      register[d] = -1
+    else:
+      register[d] = 0
     stats['Special'] += 1
 
 
@@ -263,6 +265,8 @@ def check_registers():
     print('Registers')
     for i in range(len(register)):
         print(f'{i} : {register[i]}')
+    print('lo : 0')
+    print('hi : 0\n')
 
 
 def check_memory():
@@ -270,17 +274,21 @@ def check_memory():
     for i in (DM):
         if DM[i] != 0:
             print(f'DM[{hex(i)}] = {DM[i]}')
+    print('\n')
 
 
 def check_stats():
     print('Instruction Statistics')
     for i in (stats):
         print(f'{i} Instructions : {stats[i]}')
+    print('\n')
+
 
 def check_labels():
     print('Instruction Statistics')
     for i in (label_dict):
         print(f'{i} = {label_dict[i]}')
+    print('\n')
 
 
 # Generates 32 registers
@@ -317,27 +325,26 @@ call = {
     "srl": do_srl,
     "sra": do_sra,
     "lui": do_lui,
-    "sllv": do_sllv
+    "sllv": do_sllv,
+    "dig": do_dig
 }
 
-f = open('mc.txt')
+# Reads hex file into a data structure
+f = open('special.txt')
 lines = f.readlines()
 f.close()
 
-#Instrucion and label dictionaries for robustness
+# Instrucion and label dictionaries for robustness
 instr_dict = {}
 label_dict = {}
 asm_dict = {}
 stats = {'Total':0, 'ALU': 0, 'Jump': 0, 'Branch': 0, 'Memory': 0, 'Other': 0, 'Special': 0}
-
 PC = 0
 for ln in lines:
-    instr_dict[PC] = ln[0:8]  # do not include \n in the end of an
+    instr_dict[PC] = ln[0:8]
     PC += 4
 
-check = input(
-    "Project 3: Type 'fast' for nonstop mode or 'slow' for step-by-step mode:\n"
-)
+check = input("Project 3: Type 'fast' for nonstop mode or 'slow' for step-by-step mode:\n")
 
 print('\nNow reading lines from mc.txt:\n')
 PC = 0
@@ -362,6 +369,9 @@ while PC <= list(instr_dict.keys())[-1]:
         check_registers()
         input('Press enter to continue....\n\n\n')
 
+
+print('Final Result\n'
+)
 # Shows every register
 check_registers()
 
@@ -371,6 +381,7 @@ check_memory()
 # Shows intructioin statistics
 check_stats()
 
+# Writes recreated assembly to a file
 f = open('asm_engine.txt', 'a')
 for i in range(0,len(asm_dict)*4,4):
   if str(i) in label_dict:
